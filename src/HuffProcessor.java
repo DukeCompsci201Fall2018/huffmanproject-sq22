@@ -61,7 +61,7 @@ public class HuffProcessor {
 	 * @param in BitInputStream of file to be compressed
 	 * @return int array freq storing frequencies of each char
 	 */
-	public int[] readForCounts(BitInputStream in) {
+	private int[] readForCounts(BitInputStream in) {
 		int[] freq = new int[ALPH_SIZE + 1];
 		freq[PSEUDO_EOF] = 1; //one occurrence of PSEUDO_EOF
 		while (true) {
@@ -78,7 +78,7 @@ public class HuffProcessor {
 	 * @return Huffman tree built such that least frequent characters are
 	 * in the furthest leaves from the node
 	 */
-	public HuffNode makeTreeFromCounts(int[] counts) {
+	private HuffNode makeTreeFromCounts(int[] counts) {
 		PriorityQueue<HuffNode> pq = new PriorityQueue<>();
 		for (int i = 0; i <= ALPH_SIZE; i++) {
 			if (counts[i] > 0) {
@@ -104,7 +104,7 @@ public class HuffProcessor {
 	 * @param root tree created by makeTreeFromCounts
 	 * @return array of encodings
 	 */
-	public String[] makeCodingsFromTree(HuffNode root) {
+	private String[] makeCodingsFromTree(HuffNode root) {
 		String[] encodings = new String[ALPH_SIZE + 1];
 		codingHelper(root, "", encodings);
 		return encodings;
@@ -116,7 +116,7 @@ public class HuffProcessor {
 	 * @param path represents what have already traveled through, "0" for left, "1" for right
 	 * @param encodings array of encodings found when reach leaf
 	 */
-	public void codingHelper(HuffNode root, String path, String[] encodings) {
+	private void codingHelper(HuffNode root, String path, String[] encodings) {
 		if (root.myLeft == null && root.myRight == null) { //base case, leaf
 			encodings[root.myValue] = path;
 			if (myDebugLevel >= DEBUG_HIGH) {
@@ -135,7 +135,7 @@ public class HuffProcessor {
 	 * @param root tree created by makeTreeFromCounts
 	 * @param out BitOutputStream to write to output file
 	 */
-	public void writeHeader(HuffNode root, BitOutputStream out) {
+	private void writeHeader(HuffNode root, BitOutputStream out) {
 		if (root.myLeft != null || root.myRight != null) {
 			out.writeBits(1, 0);
 			writeHeader(root.myLeft, out);
@@ -154,7 +154,7 @@ public class HuffProcessor {
 	 * @param in BitInputStream to get information to read
 	 * @param out BitOutputStream to write to output file
 	 */
-	public void writeCompressedBits(String[] codings, BitInputStream in, BitOutputStream out) {
+	private void writeCompressedBits(String[] codings, BitInputStream in, BitOutputStream out) {
 		while (true) {
 			int chunk = in.readBits(BITS_PER_WORD);
 			if (myDebugLevel >= DEBUG_HIGH) System.out.print(chunk + " ");
@@ -197,7 +197,7 @@ public class HuffProcessor {
 	 * @param in BitInputStream of tree
 	 * @return HuffNode that stores the values associated with each 'character'
 	 */
-	public HuffNode readTreeHeader(BitInputStream in) {
+	private HuffNode readTreeHeader(BitInputStream in) {
 		int oneBit = in.readBits(1);
 		if (oneBit == -1) {
 			throw new HuffException("reading bits failed");
@@ -220,7 +220,7 @@ public class HuffProcessor {
 	 * @param in BitInputStream of compressed file to be read
 	 * @param out BitOutputStream to write decompressed information to output file
 	 */
-	public void readCompressedBits(HuffNode root, BitInputStream in, BitOutputStream out) {
+	private void readCompressedBits(HuffNode root, BitInputStream in, BitOutputStream out) {
 		HuffNode current = root;
 		while (true) {
 			int oneBit = in.readBits(1);
