@@ -1,3 +1,4 @@
+import java.util.PriorityQueue;
 
 /**
  * Although this class has a history of several years,
@@ -20,14 +21,14 @@ public class HuffProcessor {
 	public static final int HUFF_TREE  = HUFF_NUMBER | 1;
 
 	private final int myDebugLevel;
-	
+
 	public static final int DEBUG_HIGH = 4;
 	public static final int DEBUG_LOW = 1;
-	
+
 	public HuffProcessor() {
 		this(0);
 	}
-	
+
 	public HuffProcessor(int debug) {
 		myDebugLevel = debug;
 	}
@@ -42,12 +43,66 @@ public class HuffProcessor {
 	 */
 	public void compress(BitInputStream in, BitOutputStream out){
 
-		while (true){
+		int[] counts = readForCounts(in); //determine frequency of each 8-bit char
+		HuffNode root = makeTreeFromCounts(counts); //use frequencies to create Huffman tree
+		String[] codings = makeCodingsFromTree(root); //use tree to create encodings
+
+		//write to compressed file - header then each chunk
+		out.writeBits(BITS_PER_INT, HUFF_TREE);
+		writeHeader(root, out);
+
+		in.reset();
+		writeCompressedBits(codings, in, out);
+		out.close();
+	}
+
+	/**
+	 * Helper method to determine frequency of characters
+	 * @param in BitInputStream of file to be compressed
+	 * @return int array freq storing frequencies of each char
+	 */
+	public int[] readForCounts(BitInputStream in) {
+		int[] freq = new int[ALPH_SIZE + 1];
+		freq[PSEUDO_EOF] = 1; //one occurrence of PSEUDO_EOF
+		while (true) {
 			int val = in.readBits(BITS_PER_WORD);
 			if (val == -1) break;
-			out.writeBits(BITS_PER_WORD, val);
+			freq[val] = freq[val] + 1;
 		}
+		return freq;
 	}
+
+	/**
+	 * Helper method to make a tree based on the frequency of characters
+	 * @param counts int[] that stores frequencies of each char
+	 * @return Huffman tree built such that least frequent characters are
+	 * in the furthest leaves from the node
+	 */
+	public HuffNode makeTreeFromCounts(int[] counts) {
+		PriorityQueue<HuffNode> pq = new PriorityQueue<>();
+		for (int i = 0; i <= ALPH_SIZE; i++) {
+			if (counts[i] > 0) pq.add(new HuffNode(i, counts[i], null, null));
+		} //add nonzero frequency values to priority queue
+
+		while (pq.size() > 1) {
+			HuffNode left = pq.remove();
+			HuffNode right = pq.remove();
+			HuffNode t = new HuffNode(0, left.myWeight + right.myWeight, left, right);
+			pq.add(t);
+		}
+		HuffNode root = pq.remove();
+		return root;
+	}
+	
+	/**
+	 * 
+	 * @param root
+	 * @return
+	 */
+	public String[] makeCodingsFromTree(HuffNode root) {
+		
+	}
+
 	/**
 	 * Decompresses a file. Output file must be identical bit-by-bit to the
 	 * original.
@@ -58,7 +113,7 @@ public class HuffProcessor {
 	 *            Buffered bit stream writing to the output file.
 	 */
 	public void decompress(BitInputStream in, BitOutputStream out){
-		
+
 		int bits = in.readBits(BITS_PER_INT);
 		if (bits != HUFF_TREE) {
 			throw new HuffException("illegal header starts with " + bits);
@@ -66,19 +121,13 @@ public class HuffProcessor {
 		if (bits == -1) {
 			throw new HuffException("reading bits failed");
 		}
-		
+
 		HuffNode root = readTreeHeader(in); //readTreeHeader should read tree to decompress
 		readCompressedBits(root, in, out); //readCompressedBits should read from
 		//compressed file and traverse paths of root and write leaf values to output file
 		out.close();
-		
-/**		while (true){
-			int val = in.readBits(BITS_PER_WORD);
-			if (val == -1) break;
-			out.writeBits(BITS_PER_WORD, val);
-		} */
 	}
-	
+
 	/**
 	 * Helper method to read tree used in compression/decompression.
 	 * @param in BitInputStream of tree
@@ -99,13 +148,13 @@ public class HuffProcessor {
 			return new HuffNode(value,0,null, null);
 		}
 	}
-	
+
 	/**
 	 * Helper method reads the bits one at a time and writes to the
 	 * output stream.
 	 * @param root HuffNode returned by readTreeHeader
-	 * @param in BitInputStream to be read
-	 * @param out BitOutputStream to write decompressed information
+	 * @param in BitInputStream of compressed file to be read
+	 * @param out BitOutputStream to write decompressed information to output file
 	 */
 	public void readCompressedBits(HuffNode root, BitInputStream in, BitOutputStream out) {
 		HuffNode current = root;
@@ -117,7 +166,7 @@ public class HuffProcessor {
 			else {
 				if (oneBit == 0) current = current.myLeft;
 				else current = current.myRight;
-				
+
 				if (current.myLeft == null && current.myRight == null) {
 					if (current.myValue == PSEUDO_EOF) break;
 					else {
