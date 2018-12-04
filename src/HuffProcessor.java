@@ -80,9 +80,9 @@ public class HuffProcessor {
 	}
 	
 	/**
-	 *TODO: write comments here
-	 * @param in
-	 * @return
+	 * Helper method to read tree used in compression/decompression.
+	 * @param in BitInputStream of tree
+	 * @return HuffNode that stores the values associated with each 'character'
 	 */
 	public HuffNode readTreeHeader(BitInputStream in) {
 		int oneBit = in.readBits(1);
@@ -100,7 +100,13 @@ public class HuffProcessor {
 		}
 	}
 	
-	
+	/**
+	 * Helper method reads the bits one at a time and writes to the
+	 * output stream.
+	 * @param root HuffNode returned by readTreeHeader
+	 * @param in BitInputStream to be read
+	 * @param out BitOutputStream to write decompressed information
+	 */
 	public void readCompressedBits(HuffNode root, BitInputStream in, BitOutputStream out) {
 		HuffNode current = root;
 		while (true) {
