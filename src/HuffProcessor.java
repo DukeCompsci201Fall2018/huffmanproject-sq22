@@ -100,6 +100,17 @@ public class HuffProcessor {
 	 * @return
 	 */
 	public String[] makeCodingsFromTree(HuffNode root) {
+		String[] encodings = new String[ALPH_SIZE + 1];
+		codingHelper(root, "", encodings);
+	}
+	
+	/**
+	 * 
+	 * @param root
+	 * @param path
+	 * @param encodings
+	 */
+	public void codingHelper(HuffNode root, String path, String[] encodings) {
 		
 	}
 
