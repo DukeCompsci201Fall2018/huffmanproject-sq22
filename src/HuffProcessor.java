@@ -93,25 +93,67 @@ public class HuffProcessor {
 		HuffNode root = pq.remove();
 		return root;
 	}
-	
+
 	/**
-	 * 
-	 * @param root
-	 * @return
+	 * Helper method to add encodings of each character to an array,
+	 * calls another helper method to recurse through tree.
+	 * @param root tree created by makeTreeFromCounts
+	 * @return array of encodings
 	 */
 	public String[] makeCodingsFromTree(HuffNode root) {
 		String[] encodings = new String[ALPH_SIZE + 1];
 		codingHelper(root, "", encodings);
+		return encodings;
 	}
-	
+
 	/**
-	 * 
-	 * @param root
-	 * @param path
-	 * @param encodings
+	 * Recursive helper method to travel through tree and find encodings of each leaf
+	 * @param root tree created by makeTreeFromCounts
+	 * @param path represents what have already traveled through, "0" for left, "1" for right
+	 * @param encodings array of encodings found when reach leaf
 	 */
 	public void codingHelper(HuffNode root, String path, String[] encodings) {
-		
+		if (root.myLeft == null && root.myRight == null) { //base case, leaf
+			encodings[root.myValue] = path;
+			return;
+		}
+		codingHelper(root.myLeft, path + "0", encodings);
+		codingHelper(root.myRight, path + "1", encodings);
+	}
+
+	/**
+	 * Helper method to write tree to read when decompressing.
+	 * Uses recursive call to do a pre-order traversal.
+	 * @param root tree created by makeTreeFromCounts
+	 * @param out BitOutputStream to write to output file
+	 */
+	public void writeHeader(HuffNode root, BitOutputStream out) {
+		if (root.myLeft != null || root.myRight != null) {
+			out.writeBits(1, 0);
+			writeHeader(root.myLeft, out);
+			writeHeader(root.myRight, out);
+		}
+		else {
+			out.writeBits(1, 1);
+			out.writeBits(BITS_PER_WORD + 1, root.myValue);
+		}
+	}
+
+	/**
+	 * Helper method to write compressed file
+	 * @param codings String array previously created of compressed
+	 * encodings for each character
+	 * @param in BitInputStream to get information to read
+	 * @param out BitOutputStream to write to output file
+	 */
+	public void writeCompressedBits(String[] codings, BitInputStream in, BitOutputStream out) {
+		while (in.readBits(BITS_PER_WORD) > -1) {
+			int chunk = in.readBits(BITS_PER_WORD);
+			String code = codings[chunk];
+			out.writeBits(code.length(), Integer.parseInt(code, 2));
+		}
+		String code = codings[PSEUDO_EOF];
+		out.writeBits(code.length(), Integer.parseInt(code, 2));
 	}
 
 	/**
