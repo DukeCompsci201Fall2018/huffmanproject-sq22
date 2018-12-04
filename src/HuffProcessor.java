@@ -81,13 +81,17 @@ public class HuffProcessor {
 	public HuffNode makeTreeFromCounts(int[] counts) {
 		PriorityQueue<HuffNode> pq = new PriorityQueue<>();
 		for (int i = 0; i <= ALPH_SIZE; i++) {
-			if (counts[i] > 0) pq.add(new HuffNode(i, counts[i], null, null));
+			if (counts[i] > 0) {
+				pq.add(new HuffNode(i, counts[i], null, null));
+			}
 		} //add nonzero frequency values to priority queue
-
+		if (myDebugLevel >= DEBUG_HIGH) {
+			System.out.printf("pq created with %d nodes\n",  pq.size());
+		}
 		while (pq.size() > 1) {
 			HuffNode left = pq.remove();
 			HuffNode right = pq.remove();
-			HuffNode t = new HuffNode(0, left.myWeight + right.myWeight, left, right);
+			HuffNode t = new HuffNode(-1, left.myWeight + right.myWeight, left, right);
 			pq.add(t);
 		}
 		HuffNode root = pq.remove();
@@ -115,6 +119,9 @@ public class HuffProcessor {
 	public void codingHelper(HuffNode root, String path, String[] encodings) {
 		if (root.myLeft == null && root.myRight == null) { //base case, leaf
 			encodings[root.myValue] = path;
+			if (myDebugLevel >= DEBUG_HIGH) {
+				System.out.printf("encoding for %d is %s\n",  root.myValue, path);
+			}
 			return;
 		}
 		codingHelper(root.myLeft, path + "0", encodings);
@@ -122,7 +129,8 @@ public class HuffProcessor {
 	}
 
 	/**
-	 * Helper method to write tree to read when decompressing.
+	 * Helper method to write sequence representing tree
+	 * to read when decompressing.
 	 * Uses recursive call to do a pre-order traversal.
 	 * @param root tree created by makeTreeFromCounts
 	 * @param out BitOutputStream to write to output file
@@ -147,9 +155,12 @@ public class HuffProcessor {
 	 * @param out BitOutputStream to write to output file
 	 */
 	public void writeCompressedBits(String[] codings, BitInputStream in, BitOutputStream out) {
-		while (in.readBits(BITS_PER_WORD) > -1) {
+		while (true) {
 			int chunk = in.readBits(BITS_PER_WORD);
+			if (myDebugLevel >= DEBUG_HIGH) System.out.print(chunk + " ");
+			if (chunk == -1) break;
 			String code = codings[chunk];
+			if (myDebugLevel >= DEBUG_HIGH) System.out.println(code);
 			out.writeBits(code.length(), Integer.parseInt(code, 2));
 		}
 		String code = codings[PSEUDO_EOF];
